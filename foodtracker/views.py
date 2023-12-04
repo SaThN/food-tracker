@@ -1,13 +1,16 @@
 from django import forms
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required,  permission_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 
-from .models import User, Food, FoodCategory, FoodLog, Image, Weight
+from django.db.models import Count
+
+# from .models import User, Food, FoodCategory, FoodLog, Image, Weight
+from .models import *
 from .forms import FoodForm, ImageForm
 
 
@@ -74,7 +77,29 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse('index'))
+    return HttpResponseRedirect(reverse('login_view'))
+
+# Profile
+def profile(request):
+    quests=Question.objects.filter(user=request.user).order_by('-id')
+    answers=Answer.objects.filter(user=request.user).order_by('-id')
+    comments=Comment.objects.filter(user=request.user).order_by('-id')
+    upvotes=UpVote.objects.filter(user=request.user).order_by('-id')
+    downvotes=DownVote.objects.filter(user=request.user).order_by('-id')
+    if request.method=='POST':
+        profileForm=ProfileForm(request.POST,instance=request.user)
+        if profileForm.is_valid():
+            profileForm.save()
+            messages.success(request,'Profile has been updated.')
+    form=ProfileForm(instance=request.user)
+    return render(request,'registration/profile.html',{
+        'form':form,
+        'quests':quests,
+        'answers':answers,
+        'comments':comments,
+        'upvotes':upvotes,
+        'downvotes':downvotes,
+    })
 
 
 def food_list_view(request):
@@ -82,7 +107,8 @@ def food_list_view(request):
     It renders a page that displays all food items
     Food items are paginated: 4 per page
     '''
-    foods = Food.objects.all()
+#     foods = Food.objects.all()
+    foods = Food.objects.all().order_by('id')  # Order by 'id' or any other field you want
 
     for food in foods:
         food.image = food.get_images.first()
@@ -118,10 +144,12 @@ def food_details_view(request, food_id):
         'categories': FoodCategory.objects.all(),
         'food': food,
         'images': food.get_images.all(),
+        'food_id': food_id,
     })
 
 
 @login_required
+@permission_required('accounts.view_lesson')
 def food_add_view(request):
     '''
     It allows the user to add a new food item
@@ -164,13 +192,87 @@ def food_add_view(request):
             'image_form': ImageFormSet(queryset=Image.objects.none()),
         })
 
+@login_required
+def food_edit_view(request, food_id):
+    '''
+    It allows the admin to edit a food item
+    '''
+
+    food = get_object_or_404(Food, pk=food_id)
+
+    if request.method == 'POST':
+        # Handle the form submission for editing the food item
+        form = FoodForm(request.POST, instance=food)
+        if form.is_valid():
+            form.save()
+            return redirect('food_details', food_id=food_id)  # Redirect to food details page
+    else:
+        # Create a form pre-populated with the existing food item data
+        form = FoodForm(instance=food)
+
+    return render(request, 'food_edit.html', {
+        'food': food,
+        'form': form,
+    })
+
+@login_required
+@permission_required('foodtracker.delete_food')
+def food_delete_view(request, food_id):
+    '''
+    Allows admin users to delete a food item
+    '''
+    food = Food.objects.get(id=food_id)
+
+    if request.method == 'POST':
+        food.delete()
+        return redirect('food_list')
+
+    return render(request, 'food_delete.html', {
+        'categories': FoodCategory.objects.all(),
+        'food': food,
+    })
 
 @login_required
 def food_log_view(request):
-    '''
-    It allows the user to select food items and
-    add them to their food log
-    '''
+#     '''
+#     It allows the user to select food items and
+#     add them to their food log
+#     '''
+#     total_calories = 0
+#     total_protein = 0
+#     total_carbohydrates = 0
+#     total_fat = 0
+#
+#     if request.method == 'POST':
+#         foods = Food.objects.all()
+#         selected_food_names = request.POST.getlist('food_consumed')
+#
+#         # Get the selected food items by name
+#         selected_foods = Food.objects.filter(food_name__in=selected_food_names)
+#
+#         # Calculate the total nutritional value
+#         total_calories = sum(selected_food.calories for selected_food in selected_foods)
+#         total_protein = sum(selected_food.protein for selected_food in selected_foods)
+#         total_carbohydrates = sum(selected_food.carbohydrates for selected_food in selected_foods)
+#         total_fat = sum(selected_food.fat for selected_food in selected_foods)
+#
+#         # You can save the total nutritional values to the user's profile or display them as needed.
+#
+#     # GET method
+#     else:
+#         foods = Food.objects.all()
+#         # Rest of your code for displaying food items and processing the form.
+#
+#     return render(request, 'food_log.html', {
+#         'categories': FoodCategory.objects.all(),
+#         'foods': foods,
+#         'title': 'Food Log',
+#         'total_calories': total_calories,
+#         'total_protein': total_protein,
+#         'total_carbohydrates': total_carbohydrates,
+#         'total_fat': total_fat,
+#     })
+
     if request.method == 'POST':
         foods = Food.objects.all()
 

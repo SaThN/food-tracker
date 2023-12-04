@@ -79,6 +79,14 @@
                 </div>
             </div>
 
+            {% if user.is_staff %}
+            <div class='my-3'>
+                <a href="{% url 'food_edit' food_id=food.id %}" class='btn btn-primary'>Edit Food Item</a>
+                <a href="{% url 'food_delete' food.id %}" class='btn btn-danger'>Delete Food Item</a>
+            </div>
+            {% endif %}
+        </div>
+
         </div>
 
     </div>

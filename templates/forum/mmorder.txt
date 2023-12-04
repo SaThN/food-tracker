@@ -1,0 +1,25 @@
+def order (request, pk=None):
+	orders = Order.objects.all()
+	order = Order.object.get(pk=pk) if pk else order()
+	
+	OrderProductFormSet = inlineformset_factory(order, OrderProduct, fields='__all__',extra=() if pk else 1)
+	
+	if request.POST.get('save')
+		form = OrderForm(request.POST, instance=order)
+		formset = OrderProductFormSet(request.POST,instance=order)
+		
+		if form.is_valid() and formset.is_valid():
+		 form.save()
+		 formset.save()
+		 return redirect('/app/orders')
+		 
+	else:
+		form = OrderForm(instance=order)
+		formset = OrderProductFormSet(instance=order)
+		
+		if request.POST:
+		   order.delete()
+		   return redirect('app/o')
+		   
+	context = {'orders':orders,'form':form,'formset':formset}
+	return render(request,'order.html',context)	

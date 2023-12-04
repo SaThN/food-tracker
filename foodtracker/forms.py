@@ -1,6 +1,8 @@
 from django import forms
+from django.forms import ModelForm
 
-from .models import Food, Image
+# from .models import Food, Image, Answer, Question
+from .models import *
 
 
 class FoodForm(forms.ModelForm):
@@ -28,3 +30,17 @@ class ImageForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ImageForm, self).__init__(*args, **kwargs)
         self.visible_fields()[0].field.widget.attrs['class'] = 'form-control'
+
+## Forum Forms
+
+class AnswerForm(ModelForm):
+    class Meta:
+        model=Answer
+        fields=('detail',)
+
+class QuestionForm(ModelForm):
+    class Meta:
+        model=Question
+        fields=('title','detail','tags')
+
+## Recipe Forms
